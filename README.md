@@ -7,7 +7,7 @@ The project investigates whether a convolutional neural network can learn both:
 1. **Cyclone presence detection** — determine whether a regional atmospheric frame contains a tropical cyclone.
 2. **Cyclone center localization** — estimate the cyclone center when a cyclone is present.
 
-The current primary experiment uses **MSLP only**, providing a simple meteorologically interpretable baseline for cyclone detection and localization.
+The current primary experiment uses **MSLP only**, providing a simple and meteorologically interpretable baseline for cyclone detection and localization.
 
 <p align="center">
   <img src="figures/cyclone_detection_overview.png" width="850">
@@ -27,11 +27,11 @@ The current primary experiment uses **MSLP only**, providing a simple meteorolog
 
 The model operates on a fixed regional domain:
 
-* **Latitude:** 0°–30°N
-* **Longitude:** 75°–105°E
-* **Grid:** 121 × 121
-* **Spatial resolution:** approximately 0.25°
-* **Primary atmospheric variable:** ERA5 mean sea level pressure (MSLP)
+- **Latitude:** 0°–30°N
+- **Longitude:** 75°–105°E
+- **Grid:** 121 × 121
+- **Spatial resolution:** approximately 0.25°
+- **Primary atmospheric variable:** ERA5 mean sea level pressure (MSLP)
 
 This domain covers the Bay of Bengal and surrounding regions affected by tropical cyclones.
 
@@ -41,11 +41,11 @@ This domain covers the Bay of Bengal and surrounding regions affected by tropica
 
 The Experiment 03 dataset contains:
 
-| Class              |   Samples |
-| ------------------ | --------: |
-| Cyclone frames     |     1,900 |
-| Non-cyclone frames |     1,900 |
-| **Total**          | **3,800** |
+| Class | Samples |
+|---|---:|
+| Cyclone frames | 1,900 |
+| Non-cyclone frames | 1,900 |
+| **Total** | **3,800** |
 
 Positive samples contain cyclone events with audited cyclone-center labels.
 
@@ -55,13 +55,14 @@ The dataset uses fixed **training, validation, and test splits** so that the sam
 
 The final test set contains:
 
-* 341 cyclone frames
-* 341 non-cyclone frames
-* **682 total samples**
+- 341 cyclone frames
+- 341 non-cyclone frames
+- **682 total samples**
 
 Large materialized arrays are not stored directly in this repository. Dataset access and structure are described in [`docs/dataset.md`](docs/dataset.md).
 
 ---
+
 ## Dataset Access
 
 The materialized Experiment 03 dataset is hosted separately on Google Drive because the NumPy arrays are too large to include directly in this repository.
@@ -70,12 +71,12 @@ The materialized Experiment 03 dataset is hosted separately on Google Drive beca
 
 The package contains:
 
-* 1,900 positive cyclone MSLP frames
-* 1,900 negative non-cyclone frames
-* positive cyclone-center target heatmaps
-* latitude and longitude grids
-* sample manifests
-* fixed train/validation/test split information
+- 1,900 positive cyclone MSLP frames
+- 1,900 negative non-cyclone frames
+- positive cyclone-center target heatmaps
+- latitude and longitude grids
+- sample manifests
+- fixed train/validation/test split information
 
 After downloading, place the data under:
 
@@ -98,15 +99,15 @@ Experiment 03 uses a **multi-task convolutional neural network** with a shared s
                   1 × 121 × 121
                        │
                        ▼
-                Shared CNN Encoder
+                 Shared CNN Encoder
                        │
-              ┌────────┴────────┐
-              │                 │
-              ▼                 ▼
-        Presence Head      Localization Head
-              │                 │
-              ▼                 ▼
-       P(cyclone)        Center Heatmap
+               ┌───────┴────────┐
+               │                │
+               ▼                ▼
+         Presence Head     Localization Head
+               │                │
+               ▼                ▼
+         P(cyclone)        Center Heatmap
 ```
 
 ### Presence Detection
@@ -148,38 +149,91 @@ Cyclone presence probability
 Cyclone-center heatmap
 ```
 
-The best model checkpoint was selected using validation performance with learning-rate reduction and early stopping.
+The model was trained using learning-rate reduction and early stopping. Model selection was performed using validation performance.
 
-The best validation checkpoint occurred at **Epoch 11**.
+The **best validation checkpoint occurred at Epoch 11**, with a validation score of **0.8695**. This checkpoint was subsequently evaluated on the held-out test set.
+
+---
+
+# Results
+
+## Presence Detection
+
+| Metric | Validation | Test |
+|---|---:|---:|
+| Accuracy | 96.41% | **94.13%** |
+| Precision | 96.83% | **94.13%** |
+| Recall | 95.96% | **94.13%** |
+| F1 | 96.40% | **94.13%** |
+
+### Test Confusion Counts
+
+| Outcome | Count |
+|---|---:|
+| True positives | 321 |
+| True negatives | 321 |
+| False positives | 20 |
+| False negatives | 20 |
+
+The final test set contains 341 cyclone and 341 non-cyclone frames. The model correctly detected **321 of 341 cyclone frames**, corresponding to a cyclone detection rate of **94.1%**.
 
 ---
 
-## Test Results
+## Center Localization
 
-### Cyclone Presence Detection
+Localization is evaluated in two ways:
 
-| Metric    | Test Result |
-| --------- | ----------: |
-| Accuracy  |  **94.13%** |
-| Precision |  **94.13%** |
-| Recall    |  **94.13%** |
-| F1 Score  |  **94.13%** |
+1. across **all true cyclone frames**, including cyclone frames missed by the presence classifier;
+2. conditionally among cyclone frames that were **successfully detected**.
 
-Confusion counts:
+### All True Cyclone Frames
 
-|                 | Count |
-| --------------- | ----: |
-| True positives  |   321 |
-| True negatives  |   321 |
-| False positives |    20 |
-| False negatives |    20 |
+| Metric | Validation | Test |
+|---|---:|---:|
+| Mean error | 37.41 km | **43.19 km** |
+| Median error | 15.93 km | **19.03 km** |
+| Within 25 km | 75.8% | **64.8%** |
+| Within 50 km | 91.9% | **90.3%** |
+| Within 100 km | 96.0% | **95.3%** |
 
-The model successfully detected **321 of 341 cyclone frames**.
+The test values above are calculated across all **341 true cyclone frames**, including false-negative cyclone frames.
+
+### Successfully Detected Cyclones — Test Set
+
+Among the **321 cyclone frames correctly identified** by the presence classifier:
+
+| Metric | Test Result |
+|---|---:|
+| Mean localization error | **25.22 km** |
+| Median localization error | **18.57 km** |
+| Within 25 km | **67.0%** |
+| Within 50 km | **92.2%** |
+| Within 100 km | **97.5%** |
+
+This conditional evaluation shows that localization is generally accurate once the cyclone has been successfully detected.
+
+> **Note:** The primary localization result across all true cyclone test frames is a mean error of **43.19 km**. The lower **25.22 km** mean error is conditional on successful cyclone detection.
 
 ---
+
+## Validation vs. Test Generalization
+
+Performance decreases moderately from validation to the held-out test set:
+
+- Presence F1: **96.40% → 94.13%**
+- Mean localization error: **37.41 km → 43.19 km**
+- Median localization error: **15.93 km → 19.03 km**
+- Within 50 km: **91.9% → 90.3%**
+
+The test set was not used for checkpoint selection; the best checkpoint was selected from validation performance at Epoch 11.
+
+---
+
 ## Example Predictions
 
-The following figures show selected low-error cyclone-center predictions from the held-out test set. These examples were chosen to illustrate successful localization and should not be interpreted as randomly selected or representative test cases.
+The following figures show selected **low-error predictions from the held-out test set**.
+
+These examples were deliberately selected to illustrate successful localization and therefore should **not** be interpreted as randomly selected or representative test cases. Aggregate performance is reported in the tables above.
 
 The background shows the ERA5 mean sea level pressure field. The **blue ×** indicates the audited cyclone center, while the **orange +** indicates the model prediction.
 
@@ -231,36 +285,6 @@ Center error: 3.64 km
 
 ---
 
-## Cyclone Center Localization
-
-### All True Cyclone Frames
-
-Localization is first evaluated across all 341 true cyclone frames, including cyclone frames missed by the presence classifier.
-
-| Metric        |  Test Result |
-| ------------- | -----------: |
-| Mean error    | **43.19 km** |
-| Median error  | **19.03 km** |
-| Within 25 km  |    **64.8%** |
-| Within 50 km  |    **90.3%** |
-| Within 100 km |    **95.3%** |
-
-### Successfully Detected Cyclones
-
-For the 321 cyclone frames correctly identified by the presence classifier:
-
-| Metric        |  Test Result |
-| ------------- | -----------: |
-| Mean error    | **25.22 km** |
-| Median error  | **18.57 km** |
-| Within 25 km  |    **67.0%** |
-| Within 50 km  |    **92.2%** |
-| Within 100 km |    **97.5%** |
-
-These results indicate that center localization is generally accurate once the cyclone has been successfully detected.
-
----
-
 ## Error Analysis
 
 Detailed analysis of Experiment 03 revealed that missed cyclone frames tend to have substantially weaker local MSLP contrast.
@@ -274,35 +298,18 @@ environmental mean MSLP − local minimum MSLP
 
 The observed test-set statistics were:
 
-| Group             | Frames | Mean Deficit | Median Deficit |
-| ----------------- | -----: | -----------: | -------------: |
-| Detected cyclones |    321 |    10.54 hPa |       8.65 hPa |
-| Missed cyclones   |     20 |     4.61 hPa |       3.38 hPa |
+| Group | Frames | Mean Deficit | Median Deficit |
+|---|---:|---:|---:|
+| Detected cyclones | 321 | 10.54 hPa | 8.65 hPa |
+| Missed cyclones | 20 | 4.61 hPa | 3.38 hPa |
+
+Missed cyclone frames therefore exhibited substantially weaker pressure deficits on average than successfully detected cyclone frames.
 
 This suggests that **weak pressure signatures are an important failure mode for an MSLP-only detector**.
 
 However, the distributions overlap, indicating that pressure contrast alone does not completely explain detection success.
 
 False-positive analysis also found that some high-confidence detections may correspond to organized low-pressure disturbances occurring before their later representation in IBTrACS.
-
-These observations motivate further investigation using additional dynamical atmospheric variables.
-
----
-
-## Research Direction
-
-Experiment 03 establishes an MSLP-only baseline.
-
-A natural follow-up hypothesis is:
-
-> Can low-level wind information provide complementary circulation features for cyclones with weak or structurally complex pressure signatures?
-
-Subsequent experiments investigate additional ERA5 variables such as:
-
-* U-component of wind at 850 hPa
-* V-component of wind at 850 hPa
-
-The goal is to determine whether dynamical wind structure can improve upon the MSLP-only baseline rather than simply increasing model complexity.
 
 ---
 
@@ -313,11 +320,21 @@ cyclone-center-detection/
 │
 ├── README.md
 ├── .gitignore
+├── requirements.txt
 │
 ├── docs/
 │   ├── dataset.md
 │   ├── methodology.md
 │   └── results.md
+│
+├── figures/
+│   ├── cyclone_detection_overview.png
+│   └── samples/
+│       ├── sample_001998.png
+│       ├── sample_002102.png
+│       ├── sample_002233.png
+│       ├── sample_002337.png
+│       └── sample_002391.png
 │
 ├── models/
 │   ├── center_detection_experiment_03_final.pt
@@ -354,14 +371,20 @@ The main experiment can then be inspected and reproduced using:
 notebooks/center_detection_experiment_03.ipynb
 ```
 
+The error-analysis notebook is provided at:
+
+```text
+notebooks/center_detection_error_analysis.ipynb
+```
+
 ---
 
 ## Data Sources
 
 This project is based primarily on:
 
-* **ERA5 reanalysis** atmospheric data
-* **IBTrACS** tropical cyclone best-track information
+- **ERA5 reanalysis** atmospheric data
+- **IBTrACS** tropical cyclone best-track information
 
 IBTrACS information is used for cyclone-track and center-reference information, while ERA5 provides the gridded atmospheric fields used as model inputs.
 
@@ -373,11 +396,11 @@ Users should refer to the original ERA5 and IBTrACS providers for their respecti
 
 The current model:
 
-* operates on a fixed 0–30°N, 75–105°E regional domain;
-* uses MSLP as its only model input in Experiment 03;
-* depends on the quality of cyclone-center labels and negative-frame selection;
-* can miss weak-pressure or structurally ambiguous cyclone systems;
-* may respond to organized low-pressure disturbances that are not represented as cyclone observations in IBTrACS at the corresponding timestamp.
+- operates on a fixed 0–30°N, 75–105°E regional domain;
+- uses MSLP as its only model input;
+- depends on the quality of cyclone-center labels and negative-frame selection;
+- can miss weak-pressure or structurally ambiguous cyclone systems;
+- may respond to organized low-pressure disturbances that are not represented as cyclone observations in IBTrACS at the corresponding timestamp.
 
 The model should therefore be considered a **research prototype**, not an operational tropical cyclone warning or forecasting system.
 
@@ -387,18 +410,20 @@ The model should therefore be considered a **research prototype**, not an operat
 
 Additional documentation:
 
-* [`Dataset`](docs/dataset.md) — dataset construction, files, labels, splits, and materialization
-* [`Methodology`](docs/methodology.md) — architecture, inputs, outputs, training, losses, and evaluation
-* [`Results`](docs/results.md) — validation/test performance and detailed error analysis
+- [`Dataset`](docs/dataset.md) — dataset construction, files, labels, splits, and materialization
+- [`Methodology`](docs/methodology.md) — architecture, inputs, outputs, training, losses, and evaluation
+- [`Results`](docs/results.md) — validation/test performance and detailed error analysis
 
 ---
 
 ## Status
 
-**Experiment 03 — MSLP-only multi-task cyclone detection and center localization**
+**Experiment 03 — MSLP-only multi-task cyclone presence detection and center localization**
 
-Current test performance:
+Final held-out test performance:
 
-**Presence F1: 94.13% · Detected-cyclone mean center error: 25.22 km · 92.2% within 50 km**
+**Presence F1: 94.13% · Mean center error: 43.19 km across all cyclone frames · 90.3% within 50 km**
 
-Further experiments investigate whether additional atmospheric variables improve performance on weak or structurally complex cyclone systems.
+Among successfully detected cyclone frames:
+
+**Mean center error: 25.22 km · 92.2% within 50 km**
