@@ -9,6 +9,18 @@ The project investigates whether a convolutional neural network can learn both:
 
 The current primary experiment uses **MSLP only**, providing a simple meteorologically interpretable baseline for cyclone detection and localization.
 
+<p align="center">
+  <img src="figures/cyclone_detection_overview.png" width="850">
+</p>
+
+<p align="center">
+  <em>
+    Example cyclone detection from the held-out test set (23 October 2024, 06:00 UTC).
+    SST is shown only to distinguish ocean from land; MSLP contours represent the
+    pressure field used by the model.
+  </em>
+</p>
+
 ---
 
 ## Study Region
