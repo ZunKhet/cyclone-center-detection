@@ -165,6 +165,59 @@ Confusion counts:
 The model successfully detected **321 of 341 cyclone frames**.
 
 ---
+## Example Predictions
+
+The following figures show selected low-error cyclone-center predictions from the held-out test set. These examples were chosen to illustrate successful localization and should not be interpreted as randomly selected or representative test cases.
+
+The background shows the ERA5 mean sea level pressure field. The **blue ×** indicates the audited cyclone center, while the **orange +** indicates the model prediction.
+
+### Best Localization Example
+
+<p align="center">
+  <img src="figures/samples/sample_001998.png" width="650">
+</p>
+
+<p align="center">
+  <b>9 May 2022:</b> localization error = 0.58 km
+</p>
+
+### Additional Examples
+
+<table>
+<tr>
+<td width="50%">
+<img src="figures/samples/sample_002102.png" width="100%">
+<br>
+<b>11 May 2023</b><br>
+Center error: 3.32 km
+</td>
+
+<td width="50%">
+<img src="figures/samples/sample_002233.png" width="100%">
+<br>
+<b>4 December 2023</b><br>
+Center error: 3.93 km
+</td>
+</tr>
+
+<tr>
+<td width="50%">
+<img src="figures/samples/sample_002337.png" width="100%">
+<br>
+<b>23 October 2024</b><br>
+Center error: 2.65 km
+</td>
+
+<td width="50%">
+<img src="figures/samples/sample_002391.png" width="100%">
+<br>
+<b>27 October 2025</b><br>
+Center error: 3.64 km
+</td>
+</tr>
+</table>
+
+---
 
 ## Cyclone Center Localization
 
